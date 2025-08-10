@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ጭነት መኪና ክትትል</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        #container { display: flex; gap: 20px; }
+        #driver-section { width: 300px; }
+        #map { height: 600px; flex-grow: 1; }
+        .form-group { margin-bottom: 15px; }
+        button { padding: 8px 15px; background: #0078A8; color: white; border: none; cursor: pointer; }
+        button:hover { background: #005f87; }
+        #driver-list { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+        .driver-item { padding: 8px; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <h1>ጭነት መኪና</h1>
+    
+    <div id="container">
+        <div id="driver-section">
+            <h2>Driver Panel</h2>
+            <div class="form-group">
+                <label for="driver-name">Driver Name:</label>
+                <input type="text" id="driver-name" placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+                <label for="driver-ip">IP Address:</label>
+                <input type="text" id="driver-ip" placeholder="Enter your IP">
+                <button id="detect-ip">Detect My IP</button>
+            </div>
+            <button id="register-btn">Register for Tracking</button>
+            
+            <div id="driver-list">
+                <h3>Active Drivers</h3>
+                <!-- Driver list will appear here -->
+            </div>
+        </div>
+        
+        <div id="map"></div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Store drivers and markers
+        const drivers = {};
+        const markers = {};
+        
+        // DOM elements
+        const driverNameInput = document.getElementById('driver-name');
+        const driverIpInput = document.getElementById('driver-ip');
+        const detectIpBtn = document.getElementById('detect-ip');
+        const registerBtn = document.getElementById('register-btn');
+        const driverList = document.getElementById('driver-list');
+        
+        // Detect IP button click
+        detectIpBtn.addEventListener('click', async function() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                driverIpInput.value = data.ip;
+            } catch (error) {
+                alert('Failed to detect IP: ' + error.message);
+            }
+        });
+        
+        // Register button click
+        registerBtn.addEventListener('click', function() {
+            const name = driverNameInput.value.trim();
+            const ip = driverIpInput.value.trim();
+            
+            if (!name || !ip) {
+                alert('Please enter both name and IP address');
+                return;
+            }
+            
+            // Add driver to tracking
+            drivers[ip] = { name, ip, lastUpdate: new Date() };
+            updateDriverList();
+            trackDriver(ip, name);
+            
+            // Simulate periodic updates (in a real app, this would be from the driver's device)
+            setInterval(() => {
+                if (drivers[ip]) {
+                    // Simulate small location changes
+                    trackDriver(ip, name);
+                }
+            }, 15000);
+        });
+        
+        // Track a driver's location
+        async function trackDriver(ip, name) {
+            try {
+                // In a real app, this would be an API call to your backend
+                // For demo, we'll use ipapi.co (limited to 1000 requests/day)
+                const response = await fetch(`https://ipapi.co/${ip}/json/`);
+                const data = await response.json();
+                
+                if (data.latitude && data.longitude) {
+                    const lat = parseFloat(data.latitude);
+                    const lng = parseFloat(data.longitude);
+                    
+                    // Add some random movement for demo purposes
+                    const latWithRandom = lat + (Math.random() * 0.02 - 0.01);
+                    const lngWithRandom = lng + (Math.random() * 0.02 - 0.01);
+                    
+                    // Update or create marker
+                    if (markers[ip]) {
+                        markers[ip].setLatLng([latWithRandom, lngWithRandom]);
+                        markers[ip].setPopupContent(`<b>${name}</b><br>IP: ${ip}<br>Location: ${data.city || 'Unknown'}, ${data.country_name || 'Unknown'}`);
+                    } else {
+                        markers[ip] = L.marker([latWithRandom, lngWithRandom])
+                            .addTo(map)
+                            .bindPopup(`<b>${name}</b><br>IP: ${ip}<br>Location: ${data.city || 'Unknown'}, ${data.country_name || 'Unknown'}`)
+                            .openPopup();
+                    }
+                    
+                    // Update driver info
+                    drivers[ip].lastUpdate = new Date();
+                    drivers[ip].location = `${data.city || 'Unknown'}, ${data.country_name || 'Unknown'}`;
+                    updateDriverList();
+                }
+            } catch (error) {
+                console.error(`Error tracking driver ${name} (${ip}):`, error);
+            }
+        }
+        
+        // Update the driver list display
+        function updateDriverList() {
+            driverList.innerHTML = '<h3>Active Drivers</h3>';
+            
+            for (const ip in drivers) {
+                const driver = drivers[ip];
+                const driverElement = document.createElement('div');
+                driverElement.className = 'driver-item';
+                driverElement.innerHTML = `
+                    <strong>${driver.name}</strong><br>
+                    IP: ${driver.ip}<br>
+                    ${driver.location || 'Location unknown'}<br>
+                    Last update: ${driver.lastUpdate.toLocaleTimeString()}
+                `;
+                driverList.appendChild(driverElement);
+            }
+        }
+        
+        // Initial demo data (remove in production)
+        function addDemoDrivers() {
+            const demoDrivers = [
+                { name: "John Smith", ip: "8.8.8.8" }, // Google DNS (US)
+                { name: "Emma Johnson", ip: "1.1.1.1" }, // Cloudflare DNS (Australia)
+                { name: "Carlos Mendez", ip: "208.67.222.222" } // OpenDNS (US)
+            ];
+            
+            demoDrivers.forEach(driver => {
+                drivers[driver.ip] = { 
+                    name: driver.name, 
+                    ip: driver.ip, 
+                    lastUpdate: new Date() 
+                };
+                trackDriver(driver.ip, driver.name);
+                
+                // Set up periodic updates for demo drivers
+                setInterval(() => {
+                    if (drivers[driver.ip]) {
+                        trackDriver(driver.ip, driver.name);
+                    }
+                }, 15000);
+            });
+            
+            updateDriverList();
+        }
+        
+        // Add demo drivers (remove this in production)
+        addDemoDrivers();
+    </script>
+</body>
+</html>
