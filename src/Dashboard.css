@@ -1,0 +1,105 @@
+.dashboard {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  font-family: Arial, sans-serif;
+  padding-bottom: 2rem;
+}
+
+.header {
+  background-color: #4CAF50;
+  padding: 1rem;
+  text-align: center;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.header p {
+  color: #d4edda;
+  margin-top: 0.25rem;
+}
+
+.stats-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  padding: 0 1.5rem;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 200px;
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-left: 4px solid transparent;
+}
+
+.stat-label {
+  color: #6b7280;
+  margin: 0;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0.25rem 0 0;
+}
+
+.stat-change {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.stat-change span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: bold;
+}
+
+.stat-change small {
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+.green-border { border-color: #4CAF50; }
+.yellow-border { border-color: #FFC107; }
+.blue-border { border-color: #2196F3; }
+
+.green-text { color: #4CAF50; }
+.yellow-text { color: #FFC107; }
+.blue-text { color: #2196F3; }
+.red-text { color: #F44336; }
+
+.charts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 0 1.5rem;
+}
+
+.chart-card {
+  flex: 1;
+  min-width: 300px;
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.chart-card h3 {
+  color: #2E7D32;
+  margin-top: 0;
+}
