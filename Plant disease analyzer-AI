@@ -1,0 +1,165 @@
+// convex/schema.ts
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
+
+const applicationTables = {
+  plantAnalyses: defineTable({
+    userId: v.id("users"),
+    imageId: v.id("_storage"),
+    plantType: v.optional(v.string()),
+    diseaseIdentified: v.optional(v.string()),
+    confidence: v.optional(v.number()),
+    symptoms: v.optional(v.array(v.string())),
+    treatment: v.optional(v.string()),
+    prevention: v.optional(v.string()),
+    severity: v.optional(v.union(
+      v.literal("mild"),
+      v.literal("moderate"),
+      v.literal("severe")
+    )),
+    analysisStatus: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+  }).index("by_user", ["userId"]),
+};
+
+export default defineSchema({
+  ...authTables,
+  ...applicationTables,
+});
+// convex/plantAnalysis.ts
+import { v } from "convex/values";
+import { mutation, query, internalAction } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.CONVEX_OPENAI_API_KEY
+});
+
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Authentication required");
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const createAnalysis = mutation({
+  args: { 
+    imageId: v.id("_storage"),
+    plantType: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Authentication required");
+
+    const analysisId = await ctx.db.insert("plantAnalyses", {
+      userId,
+      imageId: args.imageId,
+      plantType: args.plantType,
+      analysisStatus: "pending",
+    });
+
+    await ctx.scheduler.runAfter(0, internal.plantAnalysis.analyzeImage, {
+      analysisId,
+    });
+
+    return analysisId;
+  },
+});
+
+export const analyzeImage = internalAction({
+  args: { analysisId: v.id("plantAnalyses") },
+  handler: async (ctx, args) => {
+    const analysis = await ctx.db.get(args.analysisId);
+    if (!analysis) throw new Error("Analysis not found");
+
+    try {
+      const imageUrl = await ctx.storage.getUrl(analysis.imageId);
+      if (!imageUrl) throw new Error("Image not found");
+
+      const prompt = `Analyze this plant image and identify:
+1. Plant type
+2. Disease or issues
+3. Treatment recommendations
+4. Prevention advice
+
+Return response in JSON format with these fields:
+- plantType (string)
+- diseaseIdentified (string)
+- treatment (string)
+- prevention (string)
+- severity (mild/moderate/severe)`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4-vision-preview",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: imageUrl } }
+            ]
+          }
+        ],
+        max_tokens: 1000
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) throw new Error("No response from AI");
+
+      let result;
+      try {
+        result = JSON.parse(content);
+      } catch (e) {
+        result = {
+          diseaseIdentified: "Analysis error",
+          treatment: "Please try another image",
+          prevention: "",
+          severity: "moderate"
+        };
+      }
+
+      await ctx.db.patch(args.analysisId, {
+        plantType: result.plantType,
+        diseaseIdentified: result.diseaseIdentified,
+        treatment: result.treatment,
+        prevention: result.prevention,
+        severity: result.severity,
+        analysisStatus: "completed",
+      });
+
+    } catch (error) {
+      await ctx.db.patch(args.analysisId, {
+        analysisStatus: "failed",
+      });
+      throw error;
+    }
+  },
+});
+
+export const getUserAnalyses = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const analyses = await ctx.db
+      .query("plantAnalyses")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .collect();
+
+    return Promise.all(
+      analyses.map(async (analysis) => ({
+        ...analysis,
+        imageUrl: await ctx.storage.getUrl(analysis.imageId),
+      }))
+    );
+  },
+});
