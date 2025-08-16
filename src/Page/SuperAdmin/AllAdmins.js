@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Tag, Space } from 'antd';
+import { Table, Tag } from 'antd';
 
 // Sample data for admins — replace with your API data later
 const adminData = [
@@ -8,7 +8,7 @@ const adminData = [
     name: 'John Doe',
     email: 'john.doe@example.com',
     role: 'Regional Admin',
-    region: 'North Zone',
+    region: 'Oromia - Adama - Kebele 05',
     status: 'Active',
   },
   {
@@ -16,7 +16,7 @@ const adminData = [
     name: 'Jane Smith',
     email: 'jane.smith@example.com',
     role: 'Operational Admin',
-    region: 'South Zone',
+    region: 'Tigray - Mekelle - Kebele 12',
     status: 'Inactive',
   },
   {
@@ -24,13 +24,12 @@ const adminData = [
     name: 'Ahmed Ali',
     email: 'ahmed.ali@example.com',
     role: 'Regional Admin',
-    region: 'East Zone',
+    region: 'Amhara - Bahir Dar - Kebele 03',
     status: 'Active',
   },
 ];
 
-const AllAdmins= () => {
-  // Define columns for the table
+const AllAdmins = () => {
   const columns = [
     {
       title: 'Name',
@@ -57,6 +56,7 @@ const AllAdmins= () => {
       title: 'Region',
       dataIndex: 'region',
       key: 'region',
+      sorter: (a, b) => a.region.localeCompare(b.region),
     },
     {
       title: 'Status',
@@ -76,8 +76,20 @@ const AllAdmins= () => {
   ];
 
   return (
-    <div style={{ padding: 24, backgroundColor: 'white', borderRadius: 8 }}>
-      <h2>Admin List</h2>
+    <div
+      style={{
+        padding: 24,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+        transition: 'transform 0.2s ease-in-out',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.01)')}
+      onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+    >
+      <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 16, color: '#1890ff' }}>
+        Admin List
+      </h2>
       <Table
         columns={columns}
         dataSource={adminData}

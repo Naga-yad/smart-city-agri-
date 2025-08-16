@@ -28,7 +28,8 @@ function App() {
 
           <Route path="/Admin" element={<MainLayout1 />}>
             <Route index element={<AdminDashboard />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
+            {/* <Route path="dashboard" element={<AdminDashboard />} /> */}
+            {AdminRouts.map(route => route)}
           </Route>
         </Routes>
       </div>

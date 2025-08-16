@@ -88,17 +88,17 @@ const MainLayout = () => {
     label: 'System & Data Control',
     children: [
       {
-        key: 'system-control/datasets',
+        key:'upload-datasets',
         icon: <GiPlantSeed style={{ color: '#a5d6a7' }} />,
         label: 'Upload Datasets',
       },
       {
-        key: 'system-control/approvals',
+        key: 'Approve Changes',
         icon: <AiOutlineDashboard style={{ color: '#a5d6a7' }} />, // choose suitable icon
         label: 'Approve Changes',
       },
       {
-        key: 'system-control/sync',
+        key: 'Offline Sync Schedule',
         icon: <FaCog style={{ color: '#a5d6a7' }} />,
         label: 'Offline Sync Schedule',
       },
